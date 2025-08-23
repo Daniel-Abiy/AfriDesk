@@ -187,23 +187,23 @@ def government_offices():
             st.warning("Could not find the specified location. Please try a different search term.")
     
     # Add office management section for admins
-    if st.checkbox("Show Admin Options", False, key="show_admin_options"):
-        st.subheader("Add New Office")
-        with st.form("add_office_form"):
-            new_office = {
-                "name": st.text_input("Office Name"),
-                "type": st.selectbox("Office Type", ["Immigration", "State Government", "County Government", "Other"]),
-                "address": st.text_area("Full Address"),
-                "lat": st.number_input("Latitude", format="%.6f"),
-                "lon": st.number_input("Longitude", format="%.6f")
-            }
-            if st.form_submit_button("Add Office"):
-                if new_office["name"] and new_office["address"]:
-                    # In a real app, you would save this to a database
-                    st.success(f"Added {new_office['name']} to the database!")
-                else:
-                    st.error("Please fill in all required fields.")
-            st.markdown("**Services:** Document processing, Information, Applications")
+    # if st.checkbox("Show Admin Options", False, key="show_admin_options"):
+    #     # st.subheader("Add New Office")
+    #     with st.form("add_office_form"):
+    #         new_office = {
+    #             "name": st.text_input("Office Name"),
+    #             "type": st.selectbox("Office Type", ["Immigration", "State Government", "County Government", "Other"]),
+    #             "address": st.text_area("Full Address"),
+    #             "lat": st.number_input("Latitude", format="%.6f"),
+    #             "lon": st.number_input("Longitude", format="%.6f")
+    #         }
+    #         if st.form_submit_button("Add Office"):
+    #             if new_office["name"] and new_office["address"]:
+    #                 # In a real app, you would save this to a database
+    #                 st.success(f"Added {new_office['name']} to the database!")
+    #             else:
+    #                 st.error("Please fill in all required fields.")
+    #         st.markdown("**Services:** Document processing, Information, Applications")
 
 def add_office_ui():
     st.sidebar.markdown("### Add a New Office")
@@ -219,5 +219,5 @@ def add_office_ui():
             st.success("Office added successfully!")
 
 # Add the ability to add new offices (for admin use)
-if st.sidebar.checkbox("Add New Office", False):
-    add_office_ui()
+# if st.sidebar.checkbox("Add New Office", False):
+#     add_office_ui()

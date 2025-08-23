@@ -450,8 +450,21 @@ def show_personal_info_step():
                             index=["Prefer not to say", "Male", "Female", "Other"].index(
                                 st.session_state.profile_data['gender']))
         
-        country = st.text_input("Country of Residence*",
-                              value=st.session_state.profile_data['country'])
+        countries = [
+            "Select a country",
+            "Algeria", "Angola", "Benin", "Botswana", "Burkina Faso", "Burundi", "Cabo Verde", "Cameroon", "Central African Republic",
+            "Chad", "Comoros", "Congo (Congo-Brazzaville)", "Côte d'Ivoire", "Democratic Republic of the Congo", "Djibouti",
+            "Egypt", "Equatorial Guinea", "Eritrea", "Eswatini (fmr. Swaziland)", "Ethiopia", "Gabon", "Gambia", "Ghana", "Guinea",
+            "Guinea-Bissau", "Kenya", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi", "Mali", "Mauritania", "Mauritius",
+            "Morocco", "Mozambique", "Namibia", "Niger", "Nigeria", "Rwanda", "Sao Tome and Principe", "Senegal", "Seychelles",
+            "Sierra Leone", "Somalia", "South Africa", "South Sudan", "Sudan", "Tanzania", "Togo", "Tunisia", "Uganda", "Zambia", "Zimbabwe"
+        ]
+        
+        country = st.selectbox(
+            "Country of Residence*",
+            options=countries,
+            index=countries.index(st.session_state.profile_data['country']) if st.session_state.profile_data['country'] in countries else 0
+        )
         
         col1, col2 = st.columns(2)
         with col1:
@@ -620,67 +633,16 @@ def show_recommendations():
         st.rerun()
 
 def show_services():
-    # Check if we're coming from the profile page with 'Find My Services'
-    if st.session_state.get('came_from_profile', False) and 'user_profile_data' in st.session_state:
-        # Use the services_list function from services.py which handles personalized services
-        from afridesk.services import services_list
-        services_list()
-    else:
-        # Check if user has a profile
-        user_has_profile = 'user_profile_data' in st.session_state and st.session_state.user_profile_data
+    user_has_profile = 'user_profile_data' in st.session_state and st.session_state.user_profile_data
+    if not user_has_profile:
+        st.warning("⚠️ You haven't set up your profile yet. Personalize your experience by setting up your profile to get tailored service recommendations.")
+        return
+
+    from afridesk.services import services_list
+    services_list()
         
-        if not user_has_profile:
-            st.warning("⚠️ You haven't set up your profile yet. Personalize your experience by setting up your profile to get tailored service recommendations.")
-            return
-            
-        # Original services display
-        services = get_services()
-        
-        # Sidebar with service categories
-        with st.sidebar:
-            st.markdown("## Service Categories")
-            
-            # Add search/filter
-            search_term = st.text_input("Search services...", "")
-            
-            # Filter services based on search
-            filtered_services = [s for s in services if search_term.lower() in s['name'].lower()]
-            
-            if not filtered_services:
-                st.warning("No services match your search.")
-                return
-                
-            # Display service categories
-            selected_service_name = option_menu(
-                menu_title=None,
-                options=[s['name'] for s in filtered_services],
-                icons=[s['icon'] for s in filtered_services],
-                menu_icon="list",
-                default_index=0,
-                styles={
-                    "container": {"padding": "0!important", "background": "linear-gradient(180deg, #1a1a2e 0%, #16213e 100%)", "border-radius": "0.5rem", "box-shadow": "2px 0 15px rgba(0,0,0,0.2)"},
-                    "icon": {"font-size": "1.2rem"}, 
-                    "nav-link": {"font-size": "1rem", "text-align": "left", "margin":"0px", "color": "#e6e6e6", "--hover-color": "rgba(100, 180, 255, 0.2)"},
-                    "nav-link-selected": {"background-color": "#2a5298"},
-                }
-            )
-            
-            # Set the selected service
-            for service in filtered_services:
-                if service['name'] == selected_service_name:
-                    st.session_state['selected_service'] = service
-                    break
-        
-        # Main content area
-        if 'selected_service' in st.session_state:
-            st.markdown(f"# {st.session_state['selected_service']['name']}")
-            st.markdown(st.session_state['selected_service']['description'])
-            
-            # Show personalized service details if user has a profile
-            if user_has_profile and not st.session_state.get('skip_profile', False):
-                show_personalized_service_details(st.session_state['selected_service'])
-            else:
-                show_service_details(st.session_state['selected_service'])
+
+
 
 def show_about():
     st.title("About AfriDesk")

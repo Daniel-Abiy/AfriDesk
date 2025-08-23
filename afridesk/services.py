@@ -549,11 +549,6 @@ def services_list():
                         st.session_state['selected_service'] = service
                         st.session_state['show_service_details'] = True
                         st.rerun()
-    
-    # Add a button to go back to the welcome page
-    if st.button("← Back to Home"):
-        st.session_state['current_page'] = 'welcome'
-        st.rerun()
 
 def service_details():
     """Show detailed information about a selected service"""
@@ -635,10 +630,4 @@ def service_details():
     # Back button at the bottom
     if st.button("← Back to All Services", key="bottom_back"):
         st.session_state['show_service_details'] = False
-        st.rerun()
-        
-    # Button to go back to home
-    if st.button("🏠 Back to Home"):
-        st.session_state['show_service_details'] = False
-        st.session_state['current_page'] = 'welcome'
         st.rerun()
