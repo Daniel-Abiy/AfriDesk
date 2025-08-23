@@ -1,83 +1,50 @@
 
 from openai import OpenAI
 from pathlib import Path
+from dotenv import load_dotenv
+from datetime import datetime
 
+load_dotenv()
 
-class AfriDeskAssistant:
+class GovernmentAssistant:
 
     def __init__(self, api_key) -> None:
         self.api_key = api_key
-
         self.client = self.get_client()
-        # self.assistant, self.thread = self.create_assistant()
+        self.current_date = datetime.now().strftime("%Y-%m-%d")
 
-    def create_openai_assistant_prompt(self, user_data):
-
-        # Constructing a detailed prompt based on the comprehensive user data collected
-        prompt = f"""
-        User Profile:
-        - Age: {user_data['age']}
-        - Gender: {user_data['gender']}
-        - General Health: {user_data['health_status']}
-        - Location: {user_data['location']}
-        - Employment Status: {user_data['employment_status']}
-        - Insurance Provider: {user_data.get('insurance_provider', 'Not insured')}
-        
-        User Needs:
+    def create_openai_assistant_prompt(self, user_query, user_context=None):
         """
-
-        if user_data['current_medications'] == 'Yes' and user_data.get('medication_types'):
-            prompt += f"- Current Medications: {user_data['medication_types']}\n"
-        else:
-            prompt += "- Current Medications: No\n"
-
-        if user_data.get('allergies_list'):
-            prompt += f"- Known Allergies: {user_data['allergies_list']}\n"
-        else:
-            prompt += "- Known Allergies: None\n"
-
-        if user_data.get('known_conditions_list'):
-            prompt += f"- Reproductive Health Conditions: {user_data['known_conditions_list']}\n"
-        else:
-            prompt += "- Reproductive Health Conditions: None\n"
-
-        prompt += "\n1. Contraception Advice:\n"
-        if user_data['current_contraception'] == 'Yes':
-            prompt += f"   - Current Contraception: {user_data.get('current_contraception_types', 'Not specified')}\n"
-        else:
-            prompt += "   - Current Contraception: No\n"
-
-        if user_data['past_contraception'] == 'Yes':
-            prompt += f"   - Past Contraception Use: {user_data.get('past_contraception_types', 'Not specified')}\n"
-        else:
-            prompt += "   - Past Contraception Use: No\n"
-
-        prompt += f"   - Priorities for Contraception: {user_data.get('contraception_priority', 'Not specified')}\n"
-        prompt += "\n2. Fertility Planning:\n"
-        prompt += f"   - Considering Expanding Family: {user_data.get('planning_family', 'No')}\n"
-        prompt += f"   - Planned Conception Timeline: {user_data.get('conception_plan', 'Not specified')}\n"
-        prompt += f"   - Fertility Concerns: {user_data.get('fertility_concerns', 'None specified')}\n"
-
-        if user_data['family_history'] == 'Yes':
-            prompt += f"   - Family Fertility History: {user_data.get('family_history_details', 'No issues reported')}\n"
-        else:
-            prompt += "   - Family Fertility History: No issues reported\n"
-
-        prompt += "\n3. Insurance and Clinic Navigation:\n"
-        prompt += f"   - Needs Clinic Assistance: {user_data.get('need_assistance', 'No')}\n"
-
-        prompt += "\n4. Cultural and Ethical Considerations:\n"
-        prompt += f"   - Cultural or Ethical Concerns: {user_data.get('cultural_concerns', 'None specified')}\n"
-
-        prompt += f"\nTask:\n"
-        prompt += "- Provide detailed advice on suitable contraception options considering the user's health, current medication, past experiences, and priorities.\n"
-        prompt += "- Offer guidance on fertility planning considering the user's timeline, concerns, and family history.\n"
-        prompt += "- Suggest local clinics that accept the user's insurance and offer required services, considering any cultural or ethical preferences.\n"
-        prompt += "- Include personalized learning resources based on the user's preferred learning method: {user_data.get('learning_preferences', 'No preference')}.\n"
-
-        prompt += "Restrict your sources to reliable sources such as https://www.statpearls.com/, https://data.medicaid.gov/, and https://usafacts.org/"
-
-        return prompt
+        Create a prompt for government-related queries
+        """
+        base_prompt = f"""
+        You are a helpful government services assistant. Today's date is {self.current_date}.
+        Provide accurate, up-to-date information about government services, policies, and procedures.
+        Be clear, concise, and professional in your responses.
+        
+        If the user's query involves specific locations, provide information relevant to their location.
+        For time-sensitive information, make sure to note the date of the information provided.
+        
+        When appropriate, include relevant government website links or contact information.
+        If you're unsure about any information, clearly state that and suggest official sources to verify.
+        
+        User's query: {user_query}
+        """
+        
+        if user_context:
+            context_str = "\nAdditional user context:\n"
+            for key, value in user_context.items():
+                context_str += f"- {key}: {value}\n"
+            base_prompt += context_str
+            
+        base_prompt += "\nResponse guidelines:\n"
+        base_prompt += "1. Keep responses focused on government-related information\n"
+        base_prompt += "2. Include relevant government department/agency names when applicable\n"
+        base_prompt += "3. Provide step-by-step instructions for common government procedures\n"
+        base_prompt += "4. Note any required documents or eligibility criteria\n"
+        base_prompt += "5. Include official website links or contact information when possible\n"
+        
+        return base_prompt
 
 
     def get_client(self):
@@ -85,79 +52,103 @@ class AfriDeskAssistant:
     
     def create_assistant(self):
         assistant = self.client.beta.assistants.create(
-            name="Petal Health Agent",
-            instructions="You are an expert in reproductive health and personalized medical consultation. Your task is to interact with users in a sensitive and informative manner to collect detailed personal and medical information. Use this information to provide tailored advice on contraception, fertility planning, and healthcare navigation. ",
+            name="Government Services Assistant",
+            instructions="""
+            You are a knowledgeable government services assistant. Your role is to provide accurate 
+            information about government programs, services, and procedures. Help users understand 
+            how to navigate government systems, complete forms, and access services they need.
+            Be professional, clear, and helpful in all interactions.
+            """,
             tools=[{"type": "retrieval"}],
-            model="gpt-5-nano",
+            model="gpt-4-turbo-preview",
         )
         thread = self.client.beta.threads.create()
         return assistant, thread
 
 
-    def generate_response(self, user_data, api_key):
-
-        prompt = self.create_openai_assistant_prompt(user_data)
-
-        response = self.client.chat.completions.create(model="gpt-5-nano", messages=[{"role": "assistant", "content": prompt}])
-        
-        return response.choices[0].message.content
-        
-        message = self.client.beta.threads.messages.create(
-            thread_id=self.thread.id,
-            role="assistant",
-            content=prompt
-        )
-        run = self.client.beta.threads.runs.create_and_poll(
-            thread_id=self.thread.id,
-            assistant_id=self.assistant.id,
-            instructions=prompt
-        )
-
-        if run.status == 'completed': 
-            messages = self.client.beta.threads.messages.list(
-                thread_id=self.thread.id
-            )
+    def generate_response(self, user_query, user_context=None, api_key=None):
+        """
+        Generate a response to a government-related query
+        """
+        if api_key:
+            self.api_key = api_key
+            self.client = self.get_client()
             
-            return messages.data[0].content[0].text.value
+        prompt = self.create_openai_assistant_prompt(user_query, user_context)
+        
+        try:
+            response = self.client.chat.completions.create(
+                model="gpt-4-turbo-preview",
+                messages=[
+                    {"role": "system", "content": "You are a helpful government services assistant."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                max_tokens=1500
+            )
+            return response.choices[0].message.content
+            
+        except Exception as e:
+            return f"I encountered an error while processing your request. Please try again later. Error: {str(e)}"
 
             
     
     def chat(self, messages):
-        response = self.client.chat.completions.create(model="gpt-5-nano", messages=messages)
-        # message = self.client.beta.threads.messages.create(
-        #     thread_id=self.thread.id,
-        #     role="user",
-        #     content=messages[0]['content'],
-        # )
-
-        # run = self.client.beta.threads.runs.create(
-        #     thread_id=self.thread.id,
-        #     assistant_id=self.assistant.id,
-        # )
-        # if run.status == 'completed': 
-        #     messages = self.client.beta.threads.messages.list(
-        #         thread_id=self.thread.id, order="asc", after=message.id
-        #     )
-
-        #     return messages.data[0].content[0].text.value
-        return response.choices[0].message.content
+        """
+        Handle a chat conversation with the government assistant
+        """
+        try:
+            response = self.client.chat.completions.create(
+                model="gpt-4-turbo-preview",
+                messages=messages,
+                temperature=0.3,
+                max_tokens=1500
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            return f"I'm sorry, I encountered an error while processing your message. Please try again. Error: {str(e)}"
     
-    def get_clinics(self, zip_code):
-        prompt = f"Povide longitude and latitude of local clinics in the area of the zipcode of {zip_code} in python dictionary format only. Do not provide any other text. No intro text. No description. "
-        prompt += '''Here is an example for the format:  
-                    { 
-                    "clinics": [
-                        {
-                            "name": "Health Care Clinic",
-                            "lat": 37.7749,
-                            "lon": -122.4194,
-                            "services_offered": ["General Health", "Specialty Care"],
-                        }
-                    ]}
-                 '''
-        response = self.client.chat.completions.create(model="gpt-5-nano", messages=[{"role": "assistant", "content": prompt}])
-
-        return response.choices[0].message.content
+    def get_government_offices(self, location, office_type=None):
+        """
+        Get information about government offices in a specific location
+        """
+        prompt = f"""
+        Provide information about government offices in {location}.
+        
+        Format the response as a JSON object with the following structure:
+        {
+            "offices": [
+                {
+                    "name": "Office Name",
+                    "type": "Office Type (e.g., 'DMV', 'Post Office', 'City Hall')",
+                    "address": "Full Address",
+                    "phone": "Phone Number",
+                    "hours": "Business Hours",
+                    "services": ["Service 1", "Service 2"],
+                    "website": "Official Website URL"
+                }
+            ]
+        }
+        
+        Only include real, verifiable government offices. If you're not certain about an office's details,
+        it's better to omit it than to provide potentially incorrect information.
+        """
+        
+        if office_type:
+            prompt += f"\nFocus on offices of type: {office_type}"
+            
+        try:
+            response = self.client.chat.completions.create(
+                model="gpt-4-turbo-preview",
+                messages=[
+                    {"role": "system", "content": "You are a helpful government services assistant."},
+                    {"role": "user", "content": prompt}
+                ],
+                response_format={"type": "json_object"}
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            return f"Error retrieving government office information: {str(e)}"
 
     def text_to_speech(self, text, voice):
         speech_file_path = Path("audio.mp3")

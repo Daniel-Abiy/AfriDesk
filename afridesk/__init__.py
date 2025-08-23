@@ -4,7 +4,6 @@ from .response import display_response
 from .locations import government_offices
 from .welcome import show_welcome_page
 from .onboarding import onboarding_questionnaire
-from .assistant import AfriDeskAssistant
 
 __all__ = [
     'services_list',
@@ -12,5 +11,4 @@ __all__ = [
     'government_offices',
     'show_welcome_page',
     'onboarding_questionnaire',
-    'AfriDeskAssistant'
 ]
