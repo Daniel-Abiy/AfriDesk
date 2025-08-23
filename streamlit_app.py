@@ -663,6 +663,20 @@ def show_chat_interface():
     st.markdown("## 💬 Government Services Assistant")
     
     # Initialize chat history if it doesn't exist
+
+    
+    # Initialize GovernmentAssistant if not already in session state
+    if 'assistant' not in st.session_state:
+        try:
+            from afridesk.assistant import GovernmentAssistant
+            openai_api_key = os.getenv('OPENAI_API_KEY')
+            if not openai_api_key:
+                st.warning("OpenAI API key not found. Some features may be limited.")
+            st.session_state.assistant = GovernmentAssistant(openai_api_key, st.session_state.user_profile_data)
+        except Exception as e:
+            st.error(f"Error initializing assistant: {str(e)}")
+    
+
     if 'messages' not in st.session_state:
         st.session_state.messages = [
             {
@@ -677,18 +691,6 @@ def show_chat_interface():
 How can I assist you today?"""
             }
         ]
-    
-    # Initialize GovernmentAssistant if not already in session state
-    if 'assistant' not in st.session_state:
-        try:
-            from afridesk.assistant import GovernmentAssistant
-            openai_api_key = os.getenv('OPENAI_API_KEY')
-            if not openai_api_key:
-                st.warning("OpenAI API key not found. Some features may be limited.")
-            st.session_state.assistant = GovernmentAssistant(openai_api_key)
-        except Exception as e:
-            st.error(f"Error initializing assistant: {str(e)}")
-    
     # Display chat messages with better styling
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
@@ -714,7 +716,7 @@ How can I assist you today?"""
                     if 'assistant' in st.session_state:
                         # Use the chat method for conversation history
                         chat_history = [
-                            {"role": "system", "content": "You are a helpful government services assistant."}
+                            st.session_state.assistant._create_system_message()
                         ]
                         
                         # Add previous messages to maintain context

@@ -8,10 +8,39 @@ load_dotenv()
 
 class GovernmentAssistant:
 
-    def __init__(self, api_key) -> None:
+    def __init__(self, api_key, profile_data=None) -> None:
         self.api_key = api_key
         self.client = self.get_client()
         self.current_date = datetime.now().strftime("%Y-%m-%d")
+        self.profile_data = profile_data or {}
+
+    def _create_system_message(self):
+        """Create a system message with profile context"""
+        system_message = {
+            "role": "system",
+            "content": f"""You are a helpful government services assistant. Today's date is {self.current_date}.
+            Provide accurate, up-to-date information about government services, policies, and procedures.
+            Be clear, concise, and professional in your responses.
+            
+            User's profile context:
+            {self._format_profile_context()}
+            """
+        }
+        return system_message
+        
+    def _format_profile_context(self):
+        """Format profile data for inclusion in prompts"""
+        if not self.profile_data:
+            return "No profile information available."
+            
+        context_lines = []
+        for key, value in self.profile_data.items():
+            if isinstance(value, list):
+                value = ", ".join([str(v) for v in value])
+            if value:  # Only include non-empty values
+                context_lines.append(f"{key.replace('_', ' ').title()}: {value}")
+                
+        return "\n".join(context_lines) if context_lines else "No profile information available."
 
     def create_openai_assistant_prompt(self, user_query, user_context=None):
         """
@@ -27,6 +56,9 @@ class GovernmentAssistant:
         
         When appropriate, include relevant government website links or contact information.
         If you're unsure about any information, clearly state that and suggest official sources to verify.
+        
+        User's profile context:
+        {self._format_profile_context()}
         
         User's query: {user_query}
         """
@@ -93,16 +125,28 @@ class GovernmentAssistant:
 
             
     
-    def chat(self, messages):
+    def chat(self, messages, use_profile_context=True):
         """
         Handle a chat conversation with the government assistant
+        
+        Args:
+            messages: List of message dictionaries with 'role' and 'content' keys
+            use_profile_context: Whether to include profile context in the conversation
+            
+        Returns:
+            str: Assistant's response
         """
         try:
+            # Add system message with profile context if available and enabled
+            if use_profile_context and self.profile_data and messages[0]['role'] != 'system':
+                system_message = self._create_system_message()
+                messages = [system_message] + messages
+            
+            print("messages", messages)
             response = self.client.chat.completions.create(
                 model="gpt-4-turbo-preview",
                 messages=messages,
                 temperature=0.3,
-                max_tokens=1500
             )
             return response.choices[0].message.content
         except Exception as e:
