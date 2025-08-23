@@ -571,21 +571,12 @@ def show_review_step():
             st.rerun()
     
     with col2:
-        if st.button("🔍 Find My Services", type="primary"):
-            # Save profile and navigate to services page
+        if st.button("✅ Save Profile"):
             st.session_state.user_profile_data = st.session_state.profile_data
             # Ensure services will be filtered based on this profile
             if 'services_data' in st.session_state:
                 del st.session_state['services_data']
-            # Set a flag to indicate we're coming from the profile page
-            st.session_state['came_from_profile'] = True
-            st.session_state.current_page = 'services'
-            st.rerun()
-    
-    with col3:
-        if st.button("✅ Save Profile"):
-            st.session_state.user_profile_data = st.session_state.profile_data
-            st.session_state.current_page = 'recommendations'
+            # st.session_state.current_page = 'recommendations'
             st.rerun()
     
     # Form handling is done in the individual step functions
