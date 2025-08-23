@@ -672,7 +672,7 @@ def show_chat_interface():
             openai_api_key = os.getenv('OPENAI_API_KEY')
             if not openai_api_key:
                 st.warning("OpenAI API key not found. Some features may be limited.")
-            st.session_state.assistant = GovernmentAssistant(openai_api_key, st.session_state.user_profile_data)
+            st.session_state.assistant = GovernmentAssistant(openai_api_key, st.session_state.user_profile_data if openai_api_key and st.session_state.user_profile_data else {})
         except Exception as e:
             st.error(f"Error initializing assistant: {str(e)}")
     
