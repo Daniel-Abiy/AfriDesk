@@ -517,7 +517,7 @@ def services_list():
         
         for idx, service in enumerate(services_data['services']):
             with cols[0]:  # Always use first (and only) column
-                with st.expander(f"🔹 {service.get('name', 'Service')}", expanded=True):
+                with st.expander(f"🔹 {service.get('name', 'Service')}", expanded=False):
                     # Service description
                     st.markdown(f"**Description:** {service.get('description', 'No description available')}")
                     
