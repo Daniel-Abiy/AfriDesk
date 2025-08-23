@@ -682,6 +682,30 @@ def show_services():
             else:
                 show_service_details(st.session_state['selected_service'])
 
+def show_about():
+    st.title("About AfriDesk")
+    st.write("""
+    ## Your Gateway to African Government Services
+    
+    AfriDesk is a comprehensive platform designed to simplify access to government services across Africa. 
+    Our mission is to bridge the gap between citizens and essential government services through technology.
+    
+    ### Key Features:
+    - **Service Directory**: Browse a wide range of government services
+    - **Personalized Assistance**: Get tailored service recommendations based on your profile
+    - **AI Chat Support**: 24/7 virtual assistant to guide you through processes
+    - **User Profiles**: Save your information for faster service access
+    
+    ### Our Vision
+    To make government services more accessible, efficient, and user-friendly for all African citizens.
+    
+    ### Contact Us
+    Have questions or feedback? We'd love to hear from you at support@afridesk.africa
+    """)
+    
+    st.markdown("---")
+    st.caption("© 2024 AfriDesk. All rights reserved.")
+
 def show_chat_interface():
     st.markdown("## 💬 Government Services Assistant")
     
@@ -868,6 +892,8 @@ def main():
             st.session_state['current_page'] = 'services'
         elif menu == "Chat Assistant":
             st.session_state['current_page'] = 'chat'
+        elif menu == "About":
+            st.session_state['current_page'] = 'about'
     
     # Main content area
     if st.session_state['current_page'] == 'welcome':
@@ -889,6 +915,9 @@ def main():
         if st.button("← Back to Services", use_container_width=True):
             st.session_state['current_page'] = 'services'
             st.rerun()
+            
+    elif st.session_state['current_page'] == 'about':
+        show_about()
 
 if __name__ == "__main__":
     main()
