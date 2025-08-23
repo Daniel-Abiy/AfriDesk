@@ -2,6 +2,9 @@ import os
 import streamlit as st
 import google.generativeai as genai
 import json
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Local service data as fallback, categorized by service type
 LOCAL_SERVICES = {
@@ -363,7 +366,10 @@ def get_personalized_services(user_data, api_key):
     services_needed = user_data.get('services_needed', [])
     
     try:
+        print("API Key: ", api_key)
         if not api_key or api_key == 'your_gemini_api_key_here':
+            # print error message
+            print("No API key provided")
             raise ValueError("No API key provided")
             
         # Configure the Gemini API
@@ -401,9 +407,10 @@ def get_personalized_services(user_data, api_key):
         """
         
         # Initialize the Gemini model
-        model = genai.GenerativeModel('gemini-1.5-pro-latest')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         
         # Generate content
+        print("prompt: ", prompt)
         response = model.generate_content(prompt)
         response_text = response.text.strip()
         
@@ -420,31 +427,26 @@ def get_personalized_services(user_data, api_key):
     except json.JSONDecodeError as e:
         st.error("Error parsing the response from Gemini. Falling back to local service data.")
         st.error(f"Response content: {response_text if 'response_text' in locals() else 'No response'}")
-        return {"services": get_local_services(country, services_needed)}
+        return {"services": get_locals_services(country, services_needed)}
     except Exception as e:
         st.warning(f"Using local service data as fallback: {str(e)}")
         return {"services": get_local_services(country, services_needed)}
 
 def services_list():
     st.title("Government Services")
-    st.markdown("### Browse available government services")
     
     # Check if we should show service details
     if st.session_state.get('show_service_details', False) and 'selected_service' in st.session_state:
         service_details()
         return
     
-    # Try to get API key from environment or session state
-    api_key = os.getenv("GEMINI_API_KEY") or st.session_state.get('gemini_api_key')
-    
-    if not api_key:
-        st.warning("Please enter your Gemini API key in the sidebar to get personalized service recommendations.")
-        st.session_state['current_page'] = 'welcome'
-        st.rerun()
-        return
-    
-    # Get user data from session state
+    # Get user data from session state - check both user_data and user_profile_data
     user_data = st.session_state.get('user_data', {})
+    profile_data = st.session_state.get('user_profile_data', {})
+    
+    # If we have profile data but not user_data, use profile_data
+    if not user_data and profile_data:
+        user_data = profile_data
     
     if not user_data:
         st.warning("Please complete the onboarding process to get personalized service recommendations.")
@@ -452,36 +454,98 @@ def services_list():
         st.rerun()
         return
         
+    # Show appropriate heading based on context
+    if st.session_state.get('came_from_profile', False):
+        st.markdown("### 🎯 Personalized Services Based on Your Profile")
+    else:
+        st.markdown("### Browse Available Government Services")
+    
+    # Try to get API key from environment or session state
+    api_key = os.getenv("GEMINI_API_KEY") or st.session_state.get('gemini_api_key')
+    
+    if not api_key or api_key == 'your_gemini_api_key_here':
+        st.warning("No Gemini API key found. Using local service data instead.")
+        # Fall back to local services
+        country = user_data.get('country', 'Nigeria')
+        services_needed = user_data.get('needs', [])
+        services_data = {"services": get_local_services(country, services_needed)}
+        st.session_state['services_data'] = services_data
+        
     # Show loading state
-    with st.spinner("Finding services that match your profile..."):
+    with st.spinner("Analyzing your profile to find the most relevant services..."):
         # Check if we already have services data
         if 'services_data' not in st.session_state:
-            # Get personalized services
-            services_data = get_personalized_services(user_data, api_key)
-            
-            if not services_data or 'services' not in services_data:
-                st.error("Sorry, we couldn't find any services matching your profile. Please try again later.")
-                return
+            try:
+                # Get personalized services from Gemini API
+                services_data = get_personalized_services(user_data, api_key)
                 
-            # Store services in session state for details view
-            st.session_state['services_data'] = services_data
+                if not services_data or 'services' not in services_data:
+                    raise ValueError("No services data returned from API")
+                    
+                # Store services in session state for details view
+                st.session_state['services_data'] = services_data
+                
+            except Exception as e:
+                st.error("Sorry, we encountered an issue getting personalized recommendations.")
+                st.warning("Showing local services instead.")
+                # Fall back to local services
+                country = user_data.get('country', 'Nigeria')
+                services_needed = user_data.get('needs', [])
+                services_data = {"services": get_local_services(country, services_needed)}
+                st.session_state['services_data'] = services_data
         else:
             services_data = st.session_state['services_data']
             
-        # Display services
-        st.success(f"Found {len(services_data['services'])} services in {user_data.get('country', 'your location')}:")
+        # Display services with personalized message if coming from profile
+        country = user_data.get('country', 'your location')
+        if st.session_state.get('came_from_profile', False):
+            st.success(f"🎯 Found {len(services_data['services'])} personalized services in {country} based on your profile:")
+            # Show a summary of why these services were selected
+            if 'needs' in user_data and user_data['needs']:
+                st.info(f"✨ Based on your interests: {', '.join(user_data['needs'])}")
+            # Reset the flag
+            st.session_state['came_from_profile'] = False
+        else:
+            st.success(f"Found {len(services_data['services'])} services in {country}:")
+        
+        # Show a message if services were filtered by profile data
+        if profile_data and 'needs' in profile_data and profile_data['needs']:
+            st.info(f"✨ Personalized for: {', '.join(profile_data['needs'])}")
         
         # Create columns for service cards
-        cols = st.columns(2)
+        cols = st.columns(1)  # Single column for better readability of detailed cards
         
         for idx, service in enumerate(services_data['services']):
-            with cols[idx % 2]:
-                with st.expander(f"{service.get('name', 'Service')}", expanded=True):
+            with cols[0]:  # Always use first (and only) column
+                with st.expander(f"🔹 {service.get('name', 'Service')}", expanded=True):
+                    # Service description
                     st.markdown(f"**Description:** {service.get('description', 'No description available')}")
-                    st.markdown(f"**Processing Time:** {service.get('processing_time', 'Varies')}")
-                    st.markdown(f"**Fees:** {service.get('fees', 'Varies')}")
                     
-                    if st.button("View Details", key=f"details_{idx}"):
+                    # Why this service is relevant (if available)
+                    if 'why_relevant' in service and service['why_relevant']:
+                        st.markdown(f"**Why this matters for you:** {service['why_relevant']}")
+                    
+                    # Service details in a more organized way
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.markdown("**Processing Time**")
+                        st.info(f"⏱️ {service.get('processing_time', 'Varies')}")
+                    with col2:
+                        st.markdown("**Fees**")
+                        st.info(f"💰 {service.get('fees', 'Varies')}")
+                    
+                    # Required documents (if available)
+                    if 'required_documents' in service and service['required_documents']:
+                        with st.expander("📋 Required Documents", expanded=False):
+                            for doc in service['required_documents']:
+                                st.markdown(f"- {doc}")
+                    
+                    # Category tag (if available)
+                    if 'category' in service and service['category']:
+                        st.markdown(f"**Category:** `{service['category']}`")
+                    
+                    # View Details button
+                    if st.button("View Full Details", key=f"details_{idx}", use_container_width=True):
                         st.session_state['selected_service'] = service
                         st.session_state['show_service_details'] = True
                         st.rerun()
@@ -493,50 +557,80 @@ def services_list():
 
 def service_details():
     """Show detailed information about a selected service"""
+    st.title("Service Details")
+    
     if 'selected_service' not in st.session_state:
-        st.warning("No service selected. Redirecting to services...")
-        st.session_state['show_service_details'] = False
-        st.rerun()
+        st.error("No service selected. Please go back and select a service.")
+        if st.button("← Back to Services"):
+            st.session_state['show_service_details'] = False
+            st.rerun()
+        return
     
     service = st.session_state['selected_service']
     
-    st.title(service.get('name', 'Service Details'))
+    # Service header with name and category
+    st.markdown(f"## {service.get('name', 'Service Details')}")
     
-    # Back button at the top
-    if st.button("← Back to All Services"):
-        st.session_state['show_service_details'] = False
-        st.rerun()
+    # Display category if available
+    if 'category' in service and service['category']:
+        st.markdown(f"**Category:** {service['category']}")
     
-    col1, col2 = st.columns([2, 1])
+    # Description
+    st.markdown("### 📝 Description")
+    st.write(service.get('description', 'No description available.'))
+    
+    # Why this service is relevant (if available)
+    if 'why_relevant' in service and service['why_relevant']:
+        st.markdown("### 💡 Why This Matters for You")
+        st.info(service['why_relevant'])
+    
+    # Key details in columns
+    st.markdown("### ℹ️ Key Information")
+    col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("### Service Information")
-        st.markdown(f"{service.get('description', 'No description available')}")
+        st.markdown("**⏱️ Processing Time**")
+        st.info(f"{service.get('processing_time', 'Varies')}")
         
-        st.markdown("### Requirements")
-        if 'required_documents' in service and service['required_documents']:
-            st.write("**Required Documents:**")
-            for doc in service['required_documents']:
-                st.write(f"- {doc}")
-        else:
-            st.info("No specific requirements listed for this service.")
-            
-        # Add any additional service details
-        if 'additional_info' in service:
-            st.markdown("### Additional Information")
-            st.markdown(service['additional_info'])
+        if 'eligibility' in service and service['eligibility']:
+            st.markdown("**✅ Eligibility**")
+            st.info(service['eligibility'])
     
     with col2:
-        st.markdown("### Processing Details")
-        st.metric("⏱️ Processing Time", service.get('processing_time', 'Varies'))
-        st.metric("💰 Fees", service.get('fees', 'Varies'))
+        st.markdown("**💰 Fees**")
+        st.info(service.get('fees', 'Varies'))
         
-        # Add a section for next steps or actions
-        st.markdown("### Next Steps")
-        if 'application_link' in service:
-            st.markdown(f"[▶️ Apply Online]({service['application_link']})")
-        else:
-            st.info("Visit your nearest government office to apply for this service.")
+        if 'website' in service and service['website']:
+            st.markdown("**🌐 Website**")
+            st.markdown(f"[{service['website']}]({service['website']})")
+    
+    # Required documents
+    if 'required_documents' in service and service['required_documents']:
+        st.markdown("### 📋 Required Documents")
+        st.warning("Make sure you have these documents ready when applying:")
+        for i, doc in enumerate(service['required_documents'], 1):
+            st.markdown(f"{i}. **{doc}**")
+    
+    # Application process if available
+    if 'application_process' in service and service['application_process']:
+        st.markdown("### 📝 How to Apply")
+        st.write(service['application_process'])
+    
+    # Additional notes if available
+    if 'additional_notes' in service and service['additional_notes']:
+        st.markdown("### 📌 Additional Notes")
+        st.info(service['additional_notes'])
+    
+    # Back button at the bottom
+    st.markdown("---")
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        if st.button("← Back to Services", use_container_width=True):
+            st.session_state['show_service_details'] = False
+            st.rerun()
+    with col2:
+        if 'website' in service and service['website']:
+            st.link_button("🌐 Visit Official Website", service['website'], use_container_width=True)
     
     # Back button at the bottom
     if st.button("← Back to All Services", key="bottom_back"):

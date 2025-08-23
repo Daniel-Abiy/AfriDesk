@@ -260,6 +260,90 @@ def show_service_details(service):
         st.session_state['current_page'] = 'services'
         st.rerun()
 
+def show_personalized_service_details(service):
+    """Display service details personalized for the user's profile"""
+    user_profile = st.session_state.user_profile_data
+    
+    # Display service header with icon and name
+    st.markdown(f"# {service['icon']} {service['name']}")
+    st.markdown(f"{service['description']}")
+    
+    # Add a note that this is personalized
+    st.success("ℹ️ These service details are personalized based on your profile.")
+    
+    st.markdown("---")
+    
+    # Two-column layout
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### Service Details")
+        
+        # Personalized eligibility based on user profile
+        st.markdown("#### Eligibility")
+        if 'age' in user_profile and user_profile.get('age', 0) < 18 and '18+' in service['details']['Eligibility']:
+            st.warning("⚠️ Age Restriction: This service is only available for individuals 18 years and older.")
+        else:
+            st.info(service['details']['Eligibility'])
+        
+        # Processing time with personalized estimate if possible
+        st.markdown("#### Estimated Processing Time")
+        processing_time = service['details']['Processing Time']
+        if 'country' in user_profile and 'Nigeria' in user_profile['country']:
+            processing_time = f"{processing_time} (faster processing for residents in {user_profile['country']})"
+        st.info(processing_time)
+    
+    with col2:
+        st.markdown("#### Requirements")
+        
+        # Add personalized requirements based on user profile
+        requirements = service['details']['Requirements'].copy()
+        
+        # Add additional requirements based on user's country if needed
+        if 'country' in user_profile and 'Nigeria' in user_profile['country']:
+            requirements.append("Valid Nigerian ID (e.g., NIN, Voter's Card, or International Passport)")
+        
+        # Show requirements in a more readable format
+        for req in requirements:
+            st.markdown(f"- {req}")
+        
+        # Cost information with personalized notes
+        st.markdown("#### Cost Estimate")
+        cost = service['details']['Cost']
+        if 'income_level' in user_profile and 'low' in user_profile['income_level'].lower():
+            cost += " (discounts may be available for low-income individuals)"
+        st.info(cost)
+    
+    # Add a section for next steps based on the service
+    st.markdown("---")
+    st.markdown("### Next Steps")
+    
+    if st.button("📅 Schedule an Appointment", use_container_width=True):
+        st.session_state['show_appointment_form'] = True
+    
+    if st.session_state.get('show_appointment_form', False):
+        with st.form("appointment_form"):
+            st.markdown("#### Schedule an Appointment")
+            st.date_input("Preferred Date")
+            st.text_input("Contact Number")
+            if st.form_submit_button("Submit Appointment Request"):
+                st.success("Appointment request submitted! We'll contact you shortly to confirm.")
+                st.session_state['show_appointment_form'] = False
+    
+    st.markdown("---")
+    
+    # Navigation buttons
+    col1, col2, col3 = st.columns([1,1,2])
+    with col1:
+        if st.button("← Back to Services"):
+            st.session_state['current_page'] = 'services'
+            st.rerun()
+    
+    with col2:
+        if st.button("🔄 Update Profile"):
+            st.session_state['current_page'] = 'profile'
+            st.rerun()
+
 def show_profile_creation():
     st.markdown("# 👤 Set Up Your Profile")
     
@@ -418,13 +502,28 @@ def show_review_step():
         st.write("**Additional Notes:**")
         st.write(st.session_state.profile_data['additional_info'])
     
-    col1, col2 = st.columns(2)
+    # Create three columns for the buttons
+    col1, col2, col3 = st.columns([1, 1, 1])
+    
     with col1:
         if st.button("← Back to Edit"):
             st.session_state.profile_step = 3
             st.rerun()
+    
     with col2:
-        if st.button("✅ Save Profile", type="primary"):
+        if st.button("🔍 Find My Services", type="primary"):
+            # Save profile and navigate to services page
+            st.session_state.user_profile_data = st.session_state.profile_data
+            # Ensure services will be filtered based on this profile
+            if 'services_data' in st.session_state:
+                del st.session_state['services_data']
+            # Set a flag to indicate we're coming from the profile page
+            st.session_state['came_from_profile'] = True
+            st.session_state.current_page = 'services'
+            st.rerun()
+    
+    with col3:
+        if st.button("✅ Save Profile"):
             st.session_state.user_profile_data = st.session_state.profile_data
             st.session_state.current_page = 'recommendations'
             st.rerun()
@@ -474,45 +573,76 @@ def show_recommendations():
         st.rerun()
 
 def show_services():
-    services = get_services()
-    
-    # Sidebar with service categories
-    with st.sidebar:
-        st.markdown("## Service Categories")
+    # Check if we're coming from the profile page with 'Find My Services'
+    if st.session_state.get('came_from_profile', False) and 'user_profile_data' in st.session_state:
+        # Use the services_list function from services.py which handles personalized services
+        from afridesk.services import services_list
+        services_list()
+    else:
+        # Check if user has a profile
+        user_has_profile = 'user_profile_data' in st.session_state and st.session_state.user_profile_data
         
-        # Add search/filter
-        search_term = st.text_input("Search services...", "")
+        if not user_has_profile:
+            st.warning("⚠️ You haven't set up your profile yet. Personalize your experience by setting up your profile to get tailored service recommendations.")
+            col1, col2 = st.columns([1, 2])
+            with col1:
+                if st.button("Set Up Profile", type="primary"):
+                    st.session_state['current_page'] = 'profile'
+                    st.rerun()
+            with col2:
+                if st.checkbox("Continue without profile"):
+                    st.session_state['skip_profile'] = True
+                    st.rerun()
+            return
+            
+        # Original services display
+        services = get_services()
         
-        # Filter services based on search
-        filtered_services = [s for s in services if search_term.lower() in s['name'].lower()]
+        # Sidebar with service categories
+        with st.sidebar:
+            st.markdown("## Service Categories")
+            
+            # Add search/filter
+            search_term = st.text_input("Search services...", "")
+            
+            # Filter services based on search
+            filtered_services = [s for s in services if search_term.lower() in s['name'].lower()]
+            
+            if not filtered_services:
+                st.warning("No services match your search.")
+                return
+                
+            # Display service categories
+            selected_service_name = option_menu(
+                menu_title=None,
+                options=[s['name'] for s in filtered_services],
+                icons=[s['icon'] for s in filtered_services],
+                menu_icon="list",
+                default_index=0,
+                styles={
+                    "container": {"padding": "0!important", "background": "linear-gradient(180deg, #1a1a2e 0%, #16213e 100%)", "border-radius": "0.5rem", "box-shadow": "2px 0 15px rgba(0,0,0,0.2)"},
+                    "icon": {"font-size": "1.2rem"}, 
+                    "nav-link": {"font-size": "1rem", "text-align": "left", "margin":"0px", "color": "#e6e6e6", "--hover-color": "rgba(100, 180, 255, 0.2)"},
+                    "nav-link-selected": {"background-color": "#2a5298"},
+                }
+            )
+            
+            # Set the selected service
+            for service in filtered_services:
+                if service['name'] == selected_service_name:
+                    st.session_state['selected_service'] = service
+                    break
         
-        # Display service categories
-        selected_service_name = option_menu(
-            menu_title=None,
-            options=[s['name'] for s in filtered_services],
-            icons=[s['icon'] for s in filtered_services],
-            menu_icon="list",
-            default_index=0,
-            styles={
-                "container": {"padding": "0!important", "background": "linear-gradient(180deg, #1a1a2e 0%, #16213e 100%)", "border-radius": "0.5rem", "box-shadow": "2px 0 15px rgba(0,0,0,0.2)"},
-                "icon": {"font-size": "1.2rem"}, 
-                "nav-link": {"font-size": "1rem", "text-align": "left", "margin":"0px", "color": "#e6e6e6", "--hover-color": "rgba(100, 180, 255, 0.2)"},
-                "nav-link-selected": {"background-color": "#2a5298"},
-            }
-        )
-        
-        # Set the selected service
-        for service in filtered_services:
-            if service['name'] == selected_service_name:
-                st.session_state['selected_service'] = service
-                break
-    
-    # Main content area
-    st.markdown(f"# {st.session_state['selected_service']['name']}")
-    st.markdown(st.session_state['selected_service']['description'])
-    
-    # Show service details
-    show_service_details(st.session_state['selected_service'])
+        # Main content area
+        if 'selected_service' in st.session_state:
+            st.markdown(f"# {st.session_state['selected_service']['name']}")
+            st.markdown(st.session_state['selected_service']['description'])
+            
+            # Show personalized service details if user has a profile
+            if user_has_profile and not st.session_state.get('skip_profile', False):
+                show_personalized_service_details(st.session_state['selected_service'])
+            else:
+                show_service_details(st.session_state['selected_service'])
 
 def show_chat_interface():
     st.markdown("## Ask Me Anything")
