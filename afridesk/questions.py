@@ -1,6 +1,5 @@
 import streamlit as st
 from st_audiorec import st_audiorec
-from afridesk.assistant import AfriDeskAssistant
 import datetime
 
 def collect_user_needs():
@@ -19,7 +18,6 @@ def collect_user_needs():
         # st.audio(wav_audio_data, format='audio/wav')
         file_name = save_audio_file(wav_audio_data, "mp3")
 
-        assistant = AfriDeskAssistant(openai_api_key)
         transcription = assistant.transcribe(file_name)
         
         st.text_area("Feel free to edit the transcription: ", value=transcription, key="user_needs")
@@ -107,7 +105,6 @@ def collect_other_info():
         # st.audio(wav_audio_data, format='audio/wav')
         file_name = save_audio_file(wav_audio_data, "mp3")
 
-        assistant = AfriDeskAssistant(openai_api_key)
         transcription = assistant.transcribe(file_name)
         
         st.text_area("Feel free to edit the transcription: ", value=transcription, key="user_more_info")

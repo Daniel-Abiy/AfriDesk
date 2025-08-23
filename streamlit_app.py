@@ -645,21 +645,42 @@ def show_services():
                 show_service_details(st.session_state['selected_service'])
 
 def show_chat_interface():
-    st.markdown("## Ask Me Anything")
+    st.markdown("## 💬 Government Services Assistant")
     
     # Initialize chat history if it doesn't exist
     if 'messages' not in st.session_state:
         st.session_state.messages = [
-            {"role": "assistant", "content": "Hello! I'm your AfriDesk assistant. How can I help you with African government services today?"}
+            {
+                "role": "assistant", 
+                "content": """Hello! I'm your Government Services Assistant. I can help you with:
+                
+- Finding government offices and services
+- Understanding government procedures and requirements
+- Completing official forms and applications
+- Getting information about public services and benefits
+
+How can I assist you today?"""
+            }
         ]
     
-    # Display chat messages
+    # Initialize GovernmentAssistant if not already in session state
+    if 'assistant' not in st.session_state:
+        try:
+            from afridesk.assistant import GovernmentAssistant
+            openai_api_key = os.getenv('OPENAI_API_KEY')
+            if not openai_api_key:
+                st.warning("OpenAI API key not found. Some features may be limited.")
+            st.session_state.assistant = GovernmentAssistant(openai_api_key)
+        except Exception as e:
+            st.error(f"Error initializing assistant: {str(e)}")
+    
+    # Display chat messages with better styling
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
     
-    # Chat input
-    if prompt := st.chat_input("Ask about government services..."):
+    # Chat input with better placeholder
+    if prompt := st.chat_input("Ask me anything about government services..."):
         # Add user message to chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
         
@@ -667,16 +688,74 @@ def show_chat_interface():
         with st.chat_message("user"):
             st.markdown(prompt)
         
-        # Simulate assistant response (in a real app, this would call your AI model)
+        # Generate assistant response
         with st.chat_message("assistant"):
-            response = f"I understand you're asking about: {prompt}. This is a simulated response. In the full version, I would provide detailed information about this topic."
-            st.markdown(response)
-        
-        # Add assistant response to chat history
-        st.session_state.messages.append({"role": "assistant", "content": response})
+            with st.spinner("Searching for information..."):
+                try:
+                    # Get user profile data for context if available
+                    user_context = st.session_state.get('user_profile_data', {}) or st.session_state.get('user_data', {})
+                    
+                    # Generate response using the assistant
+                    if 'assistant' in st.session_state:
+                        # Use the chat method for conversation history
+                        chat_history = [
+                            {"role": "system", "content": "You are a helpful government services assistant."}
+                        ]
+                        
+                        # Add previous messages to maintain context
+                        for msg in st.session_state.messages[-5:]:  # Keep last 5 messages for context
+                            chat_history.append({"role": msg["role"], "content": msg["content"]})
+                        
+                        # Get response from the assistant
+                        response = st.session_state.assistant.chat(chat_history)
+                        
+                        # If the response is about finding offices, try to get structured data
+                        if any(keyword in prompt.lower() for keyword in ['find', 'locate', 'where is', 'nearest', 'office']):
+                            location = user_context.get('location', '')
+                            if location:
+                                office_type = None
+                                if 'dmv' in prompt.lower() or 'driving' in prompt.lower():
+                                    office_type = 'DMV'
+                                elif 'post' in prompt.lower() or 'mail' in prompt.lower():
+                                    office_type = 'Post Office'
+                                elif 'city hall' in prompt.lower() or 'municipal' in prompt.lower():
+                                    office_type = 'City Hall'
+                                    
+                                office_info = st.session_state.assistant.get_government_offices(location, office_type)
+                                if office_info and 'error' not in office_info.lower():
+                                    try:
+                                        offices = json.loads(office_info).get('offices', [])
+                                        if offices:
+                                            response += "\n\n**Nearby Government Offices:**\n\n"
+                                            for office in offices[:3]:  # Show top 3 results
+                                                response += f"**{office.get('name', 'Office')}**\n"
+                                                if 'address' in office:
+                                                    response += f"📍 {office['address']}\n"
+                                                if 'phone' in office:
+                                                    response += f"📞 {office['phone']}\n"
+                                                if 'hours' in office:
+                                                    response += f"🕒 {office['hours']}\n"
+                                                if 'website' in office:
+                                                    response += f"🌐 [Visit Website]({office['website']})\n"
+                                                response += "\n"
+                                    except json.JSONDecodeError:
+                                        response += "\n\nI found some information about local offices, but couldn't format it properly."
+                    
+                    else:
+                        response = "I'm having trouble connecting to the assistant service. Please try again later."
+                    
+                    st.markdown(response, unsafe_allow_html=True)
+                    
+                except Exception as e:
+                    error_msg = f"I'm sorry, I encountered an error while processing your request: {str(e)}"
+                    st.error(error_msg)
+                    response = error_msg
+            
+            # Add assistant response to chat history
+            st.session_state.messages.append({"role": "assistant", "content": response})
 
 def main():
-    # Install required package for the sidebar menu
+    # Install required packages
     try:
         from streamlit_option_menu import option_menu
     except ImportError:
@@ -684,6 +763,10 @@ def main():
         import subprocess
         subprocess.check_call([sys.executable, "-m", "pip", "install", "streamlit-option-menu"])
         from streamlit_option_menu import option_menu
+        
+    # Load environment variables
+    from dotenv import load_dotenv
+    load_dotenv()
     
     load_css()
     
@@ -699,30 +782,43 @@ def main():
     with st.sidebar:
         st.markdown("# Navigation")
         
-        # Main navigation menu
+        # Main navigation menu with improved styling and icons
         menu = option_menu(
             menu_title=None,
-            options=["Home", "Profile", "Services", "Chat Assistant", "About"],
-            icons=["house", "person", "list-task", "chat-left-text", "info-circle"],
+            options=["Home", "Services", "Chat Assistant", "Profile", "About"],
+            icons=["house", "list-task", "chat-left-text", "person", "info-circle"],
             menu_icon="cast",
             default_index=0,
             styles={
-                "container": {"padding": "0!important", "background": "linear-gradient(180deg, #1a1a2e 0%, #16213e 100%)", "border-radius": "0.5rem", "box-shadow": "2px 0 15px rgba(0,0,0,0.2)"},
-                "icon": {"color": "#2a5298", "font-size": "1.2rem"}, 
+                "container": {
+                    "padding": "0!important", 
+                    "background": "linear-gradient(180deg, #1a1a2e 0%, #16213e 100%)", 
+                    "border-radius": "0.5rem", 
+                    "box-shadow": "2px 0 15px rgba(0,0,0,0.2)",
+                    "margin-bottom": "1rem"
+                },
+                "icon": {"color": "#64b4ff", "font-size": "1.2rem"}, 
                 "nav-link": {
-                    "font-size": "1rem",
+                    "font-size": "0.95rem",
                     "text-align": "left",
                     "margin": "0.2rem 0",
-                    "--hover-color": "rgba(100, 180, 255, 0.3)",
+                    "--hover-color": "rgba(100, 180, 255, 0.2)",
                     "border-radius": "0.5rem",
-                    "padding": "0.5rem 1rem",
-                    "transition": "background-color 0.3s ease"
+                    "padding": "0.7rem 1rem",
+                    "transition": "all 0.3s ease",
+                    "color": "#e0e0e0"
                 },
                 "nav-link:hover": {
-                    "background-color": "rgba(100, 180, 255, 0.3)",
-                    "color": "#ffffff"
+                    "background-color": "rgba(100, 180, 255, 0.2)",
+                    "color": "#ffffff",
+                    "transform": "translateX(5px)"
                 },
-                "nav-link-selected": {"background-color": "#2a5298", "color": "white"},
+                "nav-link-selected": {
+                    "background-color": "#2a5298", 
+                    "color": "white",
+                    "font-weight": "500",
+                    "box-shadow": "0 4px 12px rgba(42, 82, 152, 0.3)"
+                },
             }
         )
         
@@ -740,15 +836,30 @@ def main():
         show_welcome()
         show_features()
         
-        # Quick access buttons
-        col1, col2 = st.columns(2)
+        # Quick access buttons with improved styling
+        st.markdown("### Quick Access")
+        col1, col2, col3 = st.columns([1, 1, 1])
+        
         with col1:
-            if st.button("🔍 Browse All Services", use_container_width=True):
+            if st.button("🔍 Browse Services", 
+                        use_container_width=True,
+                        help="Explore all available government services"):
                 st.session_state['current_page'] = 'services'
                 st.rerun()
+                
         with col2:
-            if st.button("💬 Ask the Assistant", use_container_width=True):
+            if st.button("💬 Chat with Assistant", 
+                        use_container_width=True,
+                        type="primary",
+                        help="Get personalized assistance with government services"):
                 st.session_state['current_page'] = 'chat'
+                st.rerun()
+                
+        with col3:
+            if st.button("👤 My Profile", 
+                        use_container_width=True,
+                        help="View or update your profile"):
+                st.session_state['current_page'] = 'profile'
                 st.rerun()
     
     elif st.session_state['current_page'] == 'services':

@@ -1,7 +1,6 @@
 import streamlit as st
 from streamlit_card import card
 from st_audiorec import st_audiorec
-from afridesk.assistant import AfriDeskAssistant
 import base64
 import datetime
 from afridesk.questions import navigate
@@ -114,7 +113,6 @@ def figma_profile(openai_api_key):
         # st.audio(wav_audio_data, format='audio/wav')
         file_name = save_audio_file(wav_audio_data, "mp3")
 
-        assistant = AfriDeskAssistant(openai_api_key)
         transcription = assistant.transcribe(file_name)
         
         st.text_area("Feel free to edit the transcription: ", value=transcription)
