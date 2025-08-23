@@ -631,15 +631,6 @@ def show_services():
         
         if not user_has_profile:
             st.warning("⚠️ You haven't set up your profile yet. Personalize your experience by setting up your profile to get tailored service recommendations.")
-            col1, col2 = st.columns([1, 2])
-            with col1:
-                if st.button("Set Up Profile", type="primary"):
-                    st.session_state['current_page'] = 'profile'
-                    st.rerun()
-            with col2:
-                if st.checkbox("Continue without profile"):
-                    st.session_state['skip_profile'] = True
-                    st.rerun()
             return
             
         # Original services display
