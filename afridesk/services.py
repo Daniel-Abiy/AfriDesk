@@ -626,8 +626,3 @@ def service_details():
     with col2:
         if 'website' in service and service['website']:
             st.link_button("🌐 Visit Official Website", service['website'], use_container_width=True)
-    
-    # Back button at the bottom
-    if st.button("← Back to All Services", key="bottom_back"):
-        st.session_state['show_service_details'] = False
-        st.rerun()
