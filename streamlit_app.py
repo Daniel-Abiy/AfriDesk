@@ -139,25 +139,72 @@ def show_welcome():
     """, unsafe_allow_html=True)
 
 def show_features():
-    st.markdown("## Why Choose AfriDesk?")
+    st.markdown("## Government Information Services")
+    
+    st.markdown("""
+    <style>
+    .feature-card {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        transition: all 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .feature-card:hover {
+        background: rgba(255, 255, 255, 0.15);
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    }
+    .feature-card h3 {
+        color: #ffffff;
+        margin-bottom: 0.8rem;
+        font-weight: 600;
+    }
+    .feature-card p {
+        color: #e2e8f0;
+        line-height: 1.6;
+        opacity: 0.9;
+        margin-bottom: 0;
+    }
+    .feature-icon {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        display: inline-block;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        with st.container():
-            st.markdown("### 🏥 Clinic Finder")
-            st.markdown("Locate healthcare facilities and government clinics across Africa with ease.")
+        st.markdown("""
+        <div class="feature-card">
+            <div class="feature-icon">🏛️</div>
+            <h3>Government Portals</h3>
+            <p>Access official government websites and digital services across different ministries and departments.</p>
+        </div>
+        """, unsafe_allow_html=True)
     
     with col2:
-        with st.container():
-            st.markdown("### 📋 Service Information")
-            st.markdown("Get detailed information about various government services and requirements.")
+        st.markdown("""
+        <div class="feature-card">
+            <div class="feature-icon">📑</div>
+            <h3>Public Records</h3>
+            <p>Find and request official documents, certificates, and public records from government agencies.</p>
+        </div>
+        """, unsafe_allow_html=True)
     
     with col3:
-        with st.container():
-            st.markdown("### 💬 AI Assistant")
-            st.markdown("Get answers to your questions about government services in Africa.")
+        st.markdown("""
+        <div class="feature-card">
+            <div class="feature-icon">📢</div>
+            <h3>Announcements</h3>
+            <p>Stay updated with the latest government announcements, policies, and public notices.</p>
+        </div>
+        """, unsafe_allow_html=True)
     
+    st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
     st.markdown("---")
 
 def get_services():
@@ -835,32 +882,6 @@ def main():
     if st.session_state['current_page'] == 'welcome':
         show_welcome()
         show_features()
-        
-        # Quick access buttons with improved styling
-        st.markdown("### Quick Access")
-        col1, col2, col3 = st.columns([1, 1, 1])
-        
-        with col1:
-            if st.button("🔍 Browse Services", 
-                        use_container_width=True,
-                        help="Explore all available government services"):
-                st.session_state['current_page'] = 'services'
-                st.rerun()
-                
-        with col2:
-            if st.button("💬 Chat with Assistant", 
-                        use_container_width=True,
-                        type="primary",
-                        help="Get personalized assistance with government services"):
-                st.session_state['current_page'] = 'chat'
-                st.rerun()
-                
-        with col3:
-            if st.button("👤 My Profile", 
-                        use_container_width=True,
-                        help="View or update your profile"):
-                st.session_state['current_page'] = 'profile'
-                st.rerun()
     
     elif st.session_state['current_page'] == 'services':
         show_services()
