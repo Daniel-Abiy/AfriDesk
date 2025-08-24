@@ -30,7 +30,7 @@ AfriDesk is an AI-powered platform designed to help African citizens navigate go
 2. Create a virtual environment and activate it:
    ```bash
    python -m venv venv
-   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+   source venv/bin/activate  # On Windows use `.\venv\Scripts\activate`
    ```
 
 3. Install the required packages:
