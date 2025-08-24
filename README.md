@@ -41,6 +41,7 @@ AfriDesk is an AI-powered platform designed to help African citizens navigate go
 4. Set up your environment variables:
    Create a `.env` file in the root directory and add your OpenAI API key:
    ```
+   GEMINI_API_KEY=your_api_key_here
    OPENAI_API_KEY=your_api_key_here
    ```
 
