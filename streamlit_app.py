@@ -697,18 +697,17 @@ def show_chat_interface():
     
     # Initialize chat history if it doesn't exist
 
-    
+    assistant = None
     # Initialize GovernmentAssistant if not already in session state
-    if 'assistant' not in st.session_state:
-        try:
-            from afridesk.assistant import GovernmentAssistant
-            openai_api_key = os.getenv('OPENAI_API_KEY')
-            if not openai_api_key:
-                st.warning("OpenAI API key not found. Some features may be limited.")
-            profile_data = st.session_state.get('user_profile_data', {})
-            st.session_state.assistant = GovernmentAssistant(openai_api_key, profile_data)
-        except Exception as e:
-            st.error(f"Error initializing assistant: {str(e)}")
+    try:
+        from afridesk.assistant import GovernmentAssistant
+        openai_api_key = os.getenv('OPENAI_API_KEY')
+        if not openai_api_key:
+            st.warning("OpenAI API key not found. Some features may be limited.")
+        profile_data = st.session_state.get('user_profile_data', {})
+        assistant = GovernmentAssistant(openai_api_key, profile_data)
+    except Exception as e:
+        st.error(f"Error initializing assistant: {str(e)}")
     
 
     if 'messages' not in st.session_state:
@@ -747,54 +746,51 @@ How can I assist you today?"""
                     user_context = st.session_state.get('user_profile_data', {}) or st.session_state.get('user_data', {})
                     
                     # Generate response using the assistant
-                    if 'assistant' in st.session_state:
-                        # Use the chat method for conversation history
-                        chat_history = [
-                            st.session_state.assistant._create_system_message()
-                        ]
-                        
-                        # Add previous messages to maintain context
-                        for msg in st.session_state.messages[-5:]:  # Keep last 5 messages for context
-                            chat_history.append({"role": msg["role"], "content": msg["content"]})
-                        
-                        # Get response from the assistant
-                        response = st.session_state.assistant.chat(chat_history)
-                        
-                        # If the response is about finding offices, try to get structured data
-                        if any(keyword in prompt.lower() for keyword in ['find', 'locate', 'where is', 'nearest', 'office']):
-                            location = user_context.get('location', '')
-                            if location:
-                                office_type = None
-                                if 'dmv' in prompt.lower() or 'driving' in prompt.lower():
-                                    office_type = 'DMV'
-                                elif 'post' in prompt.lower() or 'mail' in prompt.lower():
-                                    office_type = 'Post Office'
-                                elif 'city hall' in prompt.lower() or 'municipal' in prompt.lower():
-                                    office_type = 'City Hall'
-                                    
-                                office_info = st.session_state.assistant.get_government_offices(location, office_type)
-                                if office_info and 'error' not in office_info.lower():
-                                    try:
-                                        offices = json.loads(office_info).get('offices', [])
-                                        if offices:
-                                            response += "\n\n**Nearby Government Offices:**\n\n"
-                                            for office in offices[:3]:  # Show top 3 results
-                                                response += f"**{office.get('name', 'Office')}**\n"
-                                                if 'address' in office:
-                                                    response += f"📍 {office['address']}\n"
-                                                if 'phone' in office:
-                                                    response += f"📞 {office['phone']}\n"
-                                                if 'hours' in office:
-                                                    response += f"🕒 {office['hours']}\n"
-                                                if 'website' in office:
-                                                    response += f"🌐 [Visit Website]({office['website']})\n"
-                                                response += "\n"
-                                    except json.JSONDecodeError:
-                                        response += "\n\nI found some information about local offices, but couldn't format it properly."
+                    # Use the chat method for conversation history
+                    chat_history = [
+                        assistant._create_system_message()
+                    ]
                     
-                    else:
-                        response = "I'm having trouble connecting to the assistant service. Please try again later."
+                    # Add previous messages to maintain context
+                    for msg in st.session_state.messages[-5:]:  # Keep last 5 messages for context
+                        chat_history.append({"role": msg["role"], "content": msg["content"]})
                     
+                    # Get response from the assistant
+                    response = assistant.chat(chat_history)
+                    
+                    # If the response is about finding offices, try to get structured data
+                    if any(keyword in prompt.lower() for keyword in ['find', 'locate', 'where is', 'nearest', 'office']):
+                        location = user_context.get('location', '')
+                        if location:
+                            office_type = None
+                            if 'dmv' in prompt.lower() or 'driving' in prompt.lower():
+                                office_type = 'DMV'
+                            elif 'post' in prompt.lower() or 'mail' in prompt.lower():
+                                office_type = 'Post Office'
+                            elif 'city hall' in prompt.lower() or 'municipal' in prompt.lower():
+                                office_type = 'City Hall'
+                                
+                            office_info = assistant.get_government_offices(location, office_type)
+                            if office_info and 'error' not in office_info.lower():
+                                try:
+                                    offices = json.loads(office_info).get('offices', [])
+                                    if offices:
+                                        response += "\n\n**Nearby Government Offices:**\n\n"
+                                        for office in offices[:3]:  # Show top 3 results
+                                            response += f"**{office.get('name', 'Office')}**\n"
+                                            if 'address' in office:
+                                                response += f"📍 {office['address']}\n"
+                                            if 'phone' in office:
+                                                response += f"📞 {office['phone']}\n"
+                                            if 'hours' in office:
+                                                response += f"🕒 {office['hours']}\n"
+                                            if 'website' in office:
+                                                response += f"🌐 [Visit Website]({office['website']})\n"
+                                            response += "\n"
+                                except json.JSONDecodeError:
+                                    response += "\n\nI found some information about local offices, but couldn't format it properly."
+                
+                
                     st.markdown(response, unsafe_allow_html=True)
                     
                 except Exception as e:
