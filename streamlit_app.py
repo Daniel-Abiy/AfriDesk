@@ -204,6 +204,38 @@ def show_features():
         </div>
         """, unsafe_allow_html=True)
     
+    # New row of feature cards
+    st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
+    
+    col4, col5, col6 = st.columns(3)
+    
+    with col4:
+        st.markdown("""
+        <div class="feature-card">
+            <div class="feature-icon">🏥</div>
+            <h3>Healthcare</h3>
+            <p>Access healthcare services, find hospitals, and schedule medical appointments.</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col5:
+        st.markdown("""
+        <div class="feature-card">
+            <div class="feature-icon">🏠</div>
+            <h3>Housing</h3>
+            <p>Find housing assistance programs and apply for public housing services.</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col6:
+        st.markdown("""
+        <div class="feature-card">
+            <div class="feature-icon">🎓</div>
+            <h3>Education</h3>
+            <p>Access educational resources, scholarships, and school registration services.</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
     st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
     st.markdown("---")
 
