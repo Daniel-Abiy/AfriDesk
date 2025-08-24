@@ -830,7 +830,7 @@ def main():
     
     # Sidebar navigation
     with st.sidebar:
-        st.markdown("# Navigation")
+        st.markdown("#   AfriDesk")
         
         # Main navigation menu with improved styling and icons
         menu = option_menu(
