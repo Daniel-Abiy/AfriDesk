@@ -609,8 +609,9 @@ def show_review_step():
             # Ensure services will be filtered based on this profile
             if 'services_data' in st.session_state:
                 del st.session_state['services_data']
+            st.success("Profile saved successfully!", icon="✅")
             # st.session_state.current_page = 'recommendations'
-            st.rerun()
+            # st.rerun()
     
     # Form handling is done in the individual step functions
 
