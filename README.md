@@ -23,7 +23,7 @@ AfriDesk is an AI-powered platform designed to help African citizens navigate go
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/afridesk.git
+   git clone https://github.com/Daniel-Abiy/AfriDesk.git
    cd afridesk
    ```
 
@@ -48,7 +48,7 @@ AfriDesk is an AI-powered platform designed to help African citizens navigate go
 
 1. Start the Streamlit app:
    ```bash
-   streamlit run app.py
+   streamlit run streamlit_app.py
    ```
 
 2. Open your browser and navigate to `http://localhost:8501`
