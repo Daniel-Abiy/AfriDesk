@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import json
+import base64
 import google.generativeai as genai
 from pathlib import Path
 from streamlit_option_menu import option_menu
@@ -830,7 +831,13 @@ def main():
     
     # Sidebar navigation
     with st.sidebar:
-        st.markdown("#   AfriDesk")
+        # Add logo with centered alignment and proper sizing
+        st.markdown("""
+        <div style='text-align: center; margin-bottom: 20px;'>
+            <img src='data:image/jpg;base64,{}' style='max-width: 80%; height: auto; border-radius: 10px;'>
+            <h1 style='margin-top: 15px; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);'>AfriDesk</h1>
+        </div>
+        """.format(base64.b64encode(open("WhatsApp Image 2025-08-23 at 16.22.34_0012d67c.jpg", "rb").read()).decode()), unsafe_allow_html=True)
         
         # Main navigation menu with improved styling and icons
         menu = option_menu(
